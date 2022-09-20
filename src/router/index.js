@@ -1,6 +1,7 @@
 import {createRouter,createWebHashHistory} from 'vue-router'
 import sender from '../components/sender.vue'
 import receiver from '../components/receiver.vue'
+import exchangeRoom from '../components/exchangeRoom.vue'
 // const router=new VueRouter({
 //     routes:[
 //         //配置路由的路径
@@ -29,15 +30,9 @@ const routes = [
     {
         path: '/receiver',
         component: receiver,
-        // beforeEnter: (to, from, next) => {
-        //     // alert('hah')
-        //     next();
-        // },
-        // meta: {
-        //     keepAlive: true
-        // }
     },
     {path: '/sender', component: sender},
+    {path: '/exchangeroom', component: exchangeRoom},
 ];
 //};
 

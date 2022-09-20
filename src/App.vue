@@ -5,9 +5,11 @@ import HelloWorld from './components/HelloWorld.vue'
 </script>
 
 <template>
-  <router-link to="/sender">发送端</router-link>
-  <br/>
-  <router-link to="/receiver">接收端</router-link>
+  <router-link to="/sender" class="function_router">发送端</router-link>
+
+  <router-link to="/receiver" class="function_router">接收端</router-link>
+
+  <router-link to="/exchangeroom" class="function_router">交换端</router-link>
   <!-- <div>
     <a href="https://vitejs.dev" target="_blank">
       <img src="/vite.svg" class="logo" alt="Vite logo" />
@@ -31,5 +33,10 @@ import HelloWorld from './components/HelloWorld.vue'
 }
 .logo.vue:hover {
   filter: drop-shadow(0 0 2em #42b883aa);
+}
+
+.function_router {
+  margin: 10px;
+  padding: 10px;
 }
 </style>

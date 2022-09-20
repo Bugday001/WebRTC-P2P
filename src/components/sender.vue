@@ -50,6 +50,16 @@ export default {
       boxStyle: {},
     };
   },
+    components:{
+        // VideoChatVue
+    },
+    setup() {
+        let that = this;
+        const peer = ref(that.peer);
+        return {
+            peer,
+        };
+    },
   mounted() {
 
     let that = this;
