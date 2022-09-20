@@ -9,7 +9,7 @@ import HelloWorld from './components/HelloWorld.vue'
 
   <router-link to="/receiver" class="function_router">接收端</router-link>
 
-  <router-link to="/exchangeroom" class="function_router">交换端</router-link>
+  <router-link to="/exchangeroom" class="function_router">二合一端</router-link>
   <!-- <div>
     <a href="https://vitejs.dev" target="_blank">
       <img src="/vite.svg" class="logo" alt="Vite logo" />
