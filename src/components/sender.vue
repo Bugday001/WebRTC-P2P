@@ -105,7 +105,7 @@ export default {
 
     // Clear messages box
     this.clearMsgsButton.addEventListener('click', that.clearMessages);
-                // Start peer connection on click
+    // Start peer connection on click
     this.connectButton.addEventListener('click', that.join);
 
     this.initialize();
@@ -123,7 +123,7 @@ export default {
      * Sets up callbacks that handle any events related to our
      * peer object.
      */
-        initialize() {
+    initialize() {
         let that = this;
         // Create own peer object with connection to shared PeerJS server
         that.peer = new Peer(null, {
