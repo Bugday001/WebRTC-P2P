@@ -13,12 +13,12 @@
             <td>
                 <span style="font-weight: bold">ID: </span>
                 <input type="text" id="receiver-id" title="Input the ID from receive.html">
-                <button id="connect-button">Connect</button>
+                <button id="connect-button" @click="join">Connect</button>
             </td>
             <td>
                 <input type="text" id="sendMessageBox" placeholder="Enter a message..." autofocus="true" />
-                <button type="button" id="sendButton">Send</button>
-                <button type="button" id="clearMsgsButton">Clear Msgs (Local)</button>
+                <button type="button" id="sendButton" @click="send">Send</button>
+                <button type="button" id="clearMsgsButton" @click="clearMessages">Clear Msgs (Local)</button>
             </td>
         </tr>
         <tr>
@@ -40,14 +40,22 @@
                 <video controls autoPlay ref='remoteVideo' />
             </td>
         </tr>
+        <tr>
+            <td>
+                <input type="file" accept="image/*" id="inputFile" ref="file" v-on:input="inputFunc"/>
+                <button type="button" id="sendFile" @click="sendFileBtn">发送文件</button>
+            </td>
+            <td>
+                <img id="demoImage" ref="img" style="width:50%;border:1px solid #efefef"/>
+            </td>
+        </tr>
     </table>
-    <!-- <VideoChatVue></VideoChatVue> -->
 </template>
     
 <script>
 
 import Peer from 'peerjs'
-import VideoChatVue from './VideoChat.vue';
+import { encode } from '../utils/encode.js'
 
 export default {
     data() {
@@ -56,10 +64,10 @@ export default {
         };
     },
     components: {
-        VideoChatVue
+        // VideoChatVue
     },
-    mounted() {
 
+    mounted() {
         let that = this;
         this.lastPeerId = null;
         this.peer = null; // own peer object
@@ -68,50 +76,24 @@ export default {
         this.recvIdInput = document.getElementById("receiver-id");
         this.status = document.getElementById("status");
         this.message = document.getElementById("message");
-        this.goButton = document.getElementById("goButton");
-        this.resetButton = document.getElementById("resetButton");
-        this.fadeButton = document.getElementById("fadeButton");
-        this.offButton = document.getElementById("offButton");
         this.sendMessageBox = document.getElementById("sendMessageBox");
-        this.sendButton = document.getElementById("sendButton");
-        this.clearMsgsButton = document.getElementById("clearMsgsButton");
-        this.connectButton = document.getElementById("connect-button");
         this.cueString = "<span class=\"cueMsg\">Cue: </span>";
 
         //视频
         this.localVideo = this.$refs.localVideo;
         this.remoteVideo = this.$refs.remoteVideo;
-        this.callButton = document.getElementById("callUser");
 
         // Listen for enter in message box
         this.sendMessageBox.addEventListener('keypress', function (e) {
             var event = e || window.event;
             var char = event.which || event.keyCode;
             if (char == '13')
-                that.sendButton.click();
+                that.send();
         });
-        // Send message
-        this.sendButton.addEventListener('click', function () {
-            if (that.conn && that.conn.open) {
-                var msg = sendMessageBox.value;
-                that.sendMessageBox.value = "";
-                that.conn.send(msg);
-                console.log("Sent: " + msg);
-                that.addMessage("<span class=\"selfMsg\">Self: </span> " + msg);
-            } else {
-                console.log('Connection is closed');
-            }
-        });
-        // Clear messages box
-        this.clearMsgsButton.addEventListener('click', that.clearMessages);
-        // Start peer connection on click
-        this.connectButton.addEventListener('click', that.join);
-
-        //视频
-        this.callButton
 
         this.initialize();
     },
+
     created() {
         this.lastPeerId = null;
         this.peer = null; // Own peer object
@@ -120,6 +102,7 @@ export default {
         this.currentCall = null;
         this.currentConnection = null;
     },
+
     methods: {
         /**
          * Create the Peer object for our end of the connection.
@@ -133,7 +116,8 @@ export default {
             that.peer = new Peer(null, {
                 debug: 2
             });
-
+            
+            //
             that.peer.on('open', function (id) {
                 // Workaround for peer.reconnect deleting previous id
                 if (that.peer.id === null) {
@@ -142,17 +126,13 @@ export default {
                 } else {
                     that.lastPeerId = that.peer.id;
                 }
-
                 console.log('ID: ' + that.peer.id);
                 that.localId.innerHTML = "ID: " + that.peer.id;
                 that.status.innerHTML = "Awaiting connection...";
             });
+
+            // receive connection
             that.peer.on('connection', function (c) {
-                // // Disallow incoming connections
-                // c.on('open', function () {
-                //     c.send("Sender does not accept incoming connections");
-                //     setTimeout(function () { c.close(); }, 500);
-                // });
                 // Allow only a single connection
                 if (that.conn && that.conn.open) {
                     c.on('open', function () {
@@ -167,6 +147,10 @@ export default {
                 that.status.innerHTML = "Connected";
                 that.ready();
             });
+
+            /**
+             * 
+             */
             that.peer.on('disconnected', function () {
                 that.status.innerHTML = "Connection lost. Please reconnect";
                 console.log('Connection lost. Please reconnect');
@@ -176,34 +160,42 @@ export default {
                 that.peer._lastServerId = that.lastPeerId;
                 that.peer.reconnect();
             });
+
+            /**
+             * 
+             */
             that.peer.on('close', function () {
                 that.conn = null;
                 that.status.innerHTML = "Connection destroyed. Please refresh";
                 console.log('Connection destroyed');
             });
+
+            /**
+             * 
+             */
             that.peer.on('error', function (err) {
                 console.log(err);
                 alert('' + err);
             });
 
-            // 媒体传输
+            // 媒体传输，响应
             that.peer.on('call', async (call) => {
                 if (window.confirm(`是否接受 ${call.peer}?`)) {
-                // 获取本地流
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-                that.localVideo.srcObject = stream
-                that.localVideo.play()
+                    // 获取本地流
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+                    that.localVideo.srcObject = stream
+                    that.localVideo.play()
 
-                // 响应
-                call.answer(stream)
+                    // 响应
+                    call.answer(stream)
 
-                // 监听视频流，并更新到 remoteVideo 上
-                call.on('stream', (stream) => {
-                    that.remoteVideo.srcObject = stream;
-                    that.remoteVideo.play()
-                })
+                    // 监听视频流，并更新到 remoteVideo 上
+                    call.on('stream', (stream) => {
+                        that.remoteVideo.srcObject = stream;
+                        that.remoteVideo.play()
+                    })
 
-                that.currentCall = call
+                    that.currentCall = call
                 } else {
                     call.close()
                     alert('已关闭')
@@ -220,7 +212,7 @@ export default {
             that.localVideo.srcObject = stream
             that.localVideo.play()
 
-            // 数据传输
+            // 数据传输, start connection
             const connection = that.peer.connect(remoteId);
             that.conn = connection
             connection.on('open', () => {
@@ -241,6 +233,58 @@ export default {
             })
 
             that.currentCall = call
+        },
+
+        /**
+         * send msg to the other side
+         */
+        send() {
+            let that = this;
+            if (that.conn && that.conn.open) {
+                var msg = that.sendMessageBox.value;
+                that.sendMessageBox.value = "";
+                that.conn.send(msg);
+                console.log("Sent: " + msg);
+                that.addMessage("<span class=\"selfMsg\">Self: </span> " + msg);
+            } else {
+                console.log('Connection is closed');
+            }
+        },
+
+        /**
+         * 监听input文件变化,不发送
+         */
+        inputFunc() {
+            let that = this;
+            const inputFile = this.$refs.file.files[0];
+            // //构造图片对应的blob对象     
+            // const blob = new Blob(this.$refs.file.files, { type: inputFile.type });
+            that.$refs.img.src = window.URL.createObjectURL(inputFile);
+            // this.sendFile(blob, inputFile.name, inputFile.type);
+        },
+
+        sendFileBtn() {
+            let that = this;
+            const inputFile = this.$refs.file.files[0];
+            //构造图片对应的blob对象     
+            const blob = new Blob(this.$refs.file.files, { type: inputFile.type });
+            that.$refs.img.src = window.URL.createObjectURL(inputFile);
+            this.sendFile(blob, inputFile.name, inputFile.type);
+        },
+
+        /**
+         * 发送文件
+         */
+        sendFile(blob, fileName, fileType) {
+            let that = this;
+            let message = {"file": blob, "filename": fileName, "filetype": fileType };
+            if (!(that.conn && that.conn.open)) {
+                alert("请先连接，在从新上传文件发送！");
+                return;
+            }
+            that.conn.send(message);
+            that.conn.send("ok");
+            console.log('send file');
         },
 
         /**
@@ -272,7 +316,7 @@ export default {
             });
             // Handle incoming data (messages only since this is the signal sender)
             that.conn.on('data', function (data) {
-                that.addMessage("<span class=\"peerMsg\">Peer:</span> " + data);
+                that.dataProcess(data);
             });
             that.conn.on('close', function () {
                 that.status.innerHTML = "Connection closed";
@@ -285,35 +329,30 @@ export default {
          */
         ready() {
             let that = this;
+            //接收到信息
             that.conn.on('data', function (data) {
                 console.log("Data recieved");
-                var cueString = "<span class=\"cueMsg\">Cue: </span>";
-                switch (data) {
-                    case 'Go':
-                        that.go();
-                        that.addMessage(cueString + data);
-                        break;
-                    case 'Fade':
-                        that.fade();
-                        that.addMessage(cueString + data);
-                        break;
-                    case 'Off':
-                        that.off();
-                        that.addMessage(cueString + data);
-                        break;
-                    case 'Reset':
-                        that.reset();
-                        that.addMessage(cueString + data);
-                        break;
-                    default:
-                        that.addMessage("<span class=\"peerMsg\">Peer: </span>" + data);
-                        break;
-                };
+                that.dataProcess(data);
             });
+
             that.conn.on('close', function () {
                 that.status.innerHTML = "Connection reset<br>Awaiting connection...";
                 that.conn = null;
             });
+        },
+
+        dataProcess(data) {
+            let that = this;
+            //判断是文本还是文件
+            if(typeof(data) == 'string') {
+                that.addMessage("<span class=\"peerMsg\">Peer: </span>" + data);
+            }
+            else {
+                that.addMessage("<span class=\"peerMsg\">Peer send a file </span>");
+                const bytes = new Uint8Array(data.file)
+                //用base64编码，还原图片
+                that.$refs.img.src = 'data:image/png;base64,' + encode(bytes)
+            }
         },
 
         /**
@@ -370,7 +409,7 @@ export default {
 
         clearMessages() {
             this.message.innerHTML = "";
-            that.addMessage("Msgs cleared");
+            this.addMessage("Msgs cleared");
         }
 
 
