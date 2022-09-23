@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "peerjs": "^1.4.7",
+    "streamsaver": "^2.0.6",
     "vue": "^3.2.37",
     "vue-router": "^4.1.5"
   },

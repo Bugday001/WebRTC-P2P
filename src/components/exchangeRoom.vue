@@ -42,11 +42,12 @@
         </tr>
         <tr>
             <td>
-                <input type="file" accept="image/*" id="inputFile" ref="file" v-on:input="inputFunc"/>
+                <input type="file" accept="*" id="inputFile" ref="file" v-on:input="inputFunc"/>
                 <button type="button" id="sendFile" @click="sendFileBtn">发送文件</button>
             </td>
             <td>
                 <img id="demoImage" ref="img" style="width:50%;border:1px solid #efefef"/>
+                <button type="button" @click="downloadFile">下载文件</button>
             </td>
         </tr>
     </table>
@@ -55,7 +56,18 @@
 <script>
 
 import Peer from 'peerjs'
-import { encode } from '../utils/encode.js'
+import streamSaver from 'streamsaver'
+import { encode, isAssetTypeAnImage } from '../utils/utils.js'
+
+const BYTES_PER_CHUNK = 1200 * 1024;
+var currentChunk = 0;
+var file;
+
+var incomingFileInfo;
+var incomingFileData;
+var bytesReceived;
+var downloadInProgress = false;
+
 
 export default {
     data() {
@@ -78,10 +90,24 @@ export default {
         this.message = document.getElementById("message");
         this.sendMessageBox = document.getElementById("sendMessageBox");
         this.cueString = "<span class=\"cueMsg\">Cue: </span>";
-
+        
         //视频
         this.localVideo = this.$refs.localVideo;
         this.remoteVideo = this.$refs.remoteVideo;
+
+        //文件
+        this.fileReader = new FileReader();
+        this.fileReader.onload = function() {
+            that.conn.send( that.fileReader.result );
+            currentChunk++;
+            if( BYTES_PER_CHUNK * currentChunk < file.size ) {
+                that.readNextChunk();
+            }
+        },
+        //文件流式传输
+        this.fileStream = null;
+        this.writer = null;
+
 
         // Listen for enter in message box
         this.sendMessageBox.addEventListener('keypress', function (e) {
@@ -220,7 +246,7 @@ export default {
                 console.log("已连接 remote")
             })
             // 多媒体传输
-            const call = that.peer.call(remoteId, stream)
+            const call = that.peer.call(remoteId, stream);
             call.on("stream", (stream) => {
             that.remoteVideo.srcObject = stream;
             that.remoteVideo.play()
@@ -233,58 +259,6 @@ export default {
             })
 
             that.currentCall = call
-        },
-
-        /**
-         * send msg to the other side
-         */
-        send() {
-            let that = this;
-            if (that.conn && that.conn.open) {
-                var msg = that.sendMessageBox.value;
-                that.sendMessageBox.value = "";
-                that.conn.send(msg);
-                console.log("Sent: " + msg);
-                that.addMessage("<span class=\"selfMsg\">Self: </span> " + msg);
-            } else {
-                console.log('Connection is closed');
-            }
-        },
-
-        /**
-         * 监听input文件变化,不发送
-         */
-        inputFunc() {
-            let that = this;
-            const inputFile = this.$refs.file.files[0];
-            // //构造图片对应的blob对象     
-            // const blob = new Blob(this.$refs.file.files, { type: inputFile.type });
-            that.$refs.img.src = window.URL.createObjectURL(inputFile);
-            // this.sendFile(blob, inputFile.name, inputFile.type);
-        },
-
-        sendFileBtn() {
-            let that = this;
-            const inputFile = this.$refs.file.files[0];
-            //构造图片对应的blob对象     
-            const blob = new Blob(this.$refs.file.files, { type: inputFile.type });
-            that.$refs.img.src = window.URL.createObjectURL(inputFile);
-            this.sendFile(blob, inputFile.name, inputFile.type);
-        },
-
-        /**
-         * 发送文件
-         */
-        sendFile(blob, fileName, fileType) {
-            let that = this;
-            let message = {"file": blob, "filename": fileName, "filetype": fileType };
-            if (!(that.conn && that.conn.open)) {
-                alert("请先连接，在从新上传文件发送！");
-                return;
-            }
-            that.conn.send(message);
-            that.conn.send("ok");
-            console.log('send file');
         },
 
         /**
@@ -341,17 +315,154 @@ export default {
             });
         },
 
-        dataProcess(data) {
+        /**
+         * 处理接收的数据
+         * @param {*} data 
+         */
+         dataProcess(data) {
             let that = this;
             //判断是文本还是文件
-            if(typeof(data) == 'string') {
-                that.addMessage("<span class=\"peerMsg\">Peer: </span>" + data);
+            // if(typeof(data) == 'string') {
+            //     that.addMessage("<span class=\"peerMsg\">Peer: </span>" + data);
+            // }
+            // else {
+            //     that.addMessage("<span class=\"peerMsg\">Peer send a file </span>");
+            //     const bytes = new Uint8Array(data.file)
+            //     //用base64编码，还原图片
+            //     that.$refs.img.src = 'data:image/png;base64,' + encode(bytes)
+            // }
+            if( downloadInProgress == false ) {
+                that.startDownload( data );
+            } else if(downloadInProgress) {
+                that.progressDownload( data );
             }
-            else {
-                that.addMessage("<span class=\"peerMsg\">Peer send a file </span>");
-                const bytes = new Uint8Array(data.file)
-                //用base64编码，还原图片
-                that.$refs.img.src = 'data:image/png;base64,' + encode(bytes)
+        },
+        
+        /**
+         * send msg to the other side
+         */
+         send() {
+            let that = this;
+            if (that.conn && that.conn.open) {
+                var msg = that.sendMessageBox.value;
+                that.sendMessageBox.value = "";
+                that.conn.send(msg);
+                console.log("Sent: " + msg);
+                that.addMessage("<span class=\"selfMsg\">Self: </span> " + msg);
+            } else {
+                console.log('Connection is closed');
+            }
+        },
+
+        /**
+         * 监听input文件变化,不发送
+         */
+        inputFunc() {
+            let that = this;
+            const inputFile = this.$refs.file.files[0];
+            //构造图片对应的blob对象     
+            if(isAssetTypeAnImage(inputFile.name)) {
+                that.$refs.img.src = window.URL.createObjectURL(inputFile);
+            }
+        },
+
+        /**
+         * 发送文件按钮回调
+         */
+        sendFileBtn() {
+            let that = this;
+            const inputFile = this.$refs.file.files[0];            
+            //切片
+            currentChunk = 0;
+            // send some metadata about our file
+            // to the receiver
+            that.conn.send(JSON.stringify({
+                fileName: inputFile.name,
+                fileSize: inputFile.size
+            }));
+            file = inputFile;
+            that.readNextChunk();
+        },
+
+        /**
+         * 发送文件
+         */
+        sendFile(blob, fileName, fileType) {
+            let that = this;
+            let message = {"file": blob, "filename": fileName, "filetype": fileType };
+            if (!(that.conn && that.conn.open)) {
+                alert("请先连接，在从新上传文件发送！");
+                return;
+            }
+            that.conn.send(message);
+            that.conn.send("ok");
+            console.log('send file');
+        },
+
+        /**
+         * 文件切片发送
+         */
+        readNextChunk() {
+            let that = this;
+            let start = BYTES_PER_CHUNK * currentChunk;
+            let end = Math.min( file.size, start + BYTES_PER_CHUNK );
+            that.fileReader.readAsArrayBuffer( file.slice( start, end ) );
+        },
+
+        /**
+         * 
+         * @param {文件信息接收} data 
+         */
+        startDownload( data ) {
+            let that = this;
+            incomingFileInfo = JSON.parse( data.toString() );
+            incomingFileData = [];
+            bytesReceived = 0;
+            downloadInProgress = true;
+            console.log( 'incoming file <b>' + incomingFileInfo.fileName + '</b> of ' + incomingFileInfo.fileSize + ' bytes' );
+        },
+
+        /**
+         * 文件接收
+         * @param {*} data 
+         */
+        progressDownload( data ) {
+            let that = this;
+            bytesReceived += data.byteLength;
+            incomingFileData.push( data );
+            console.log( 'progress: ' +  ((bytesReceived / incomingFileInfo.fileSize ) * 100).toFixed( 2 ) + '%' );
+            if( bytesReceived === incomingFileInfo.fileSize ) {
+                console.log("传输完成");
+                if(isAssetTypeAnImage(incomingFileInfo.fileName)) {
+                    that.addMessage("<span class=\"peerMsg\">Peer send a file </span>");
+                    let blob = new window.Blob(incomingFileData);
+                    that.$refs.img.src = window.URL.createObjectURL(blob);
+                    downloadInProgress =false;
+                }
+
+            }
+            if(bytesReceived > incomingFileInfo.fileSize) {
+                console.log("失败");
+                downloadInProgress =false;
+            }
+        },
+
+        //启动下载
+        downloadFile() {
+            console.log("endDownload!");
+            downloadInProgress = false;
+            let blob = new window.Blob( incomingFileData );
+            let anchor = document.createElement( 'a' );
+            anchor.href = URL.createObjectURL( blob );
+            anchor.download = incomingFileInfo.fileName;
+            anchor.textContent = 'XXXXXXX';
+
+            if( anchor.click ) {
+                anchor.click();
+            } else {
+                var evt = document.createEvent( 'MouseEvents' );
+                evt.initMouseEvent( 'click', true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null );
+                anchor.dispatchEvent( evt );
             }
         },
 

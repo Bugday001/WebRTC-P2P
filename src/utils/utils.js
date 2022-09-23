@@ -30,4 +30,18 @@ const encode = input => {
     return output
 }
 
-export {encode};
+/**
+ * 判断文件类型是否为图片
+ * @param {传入文件名} filePath 
+ * @returns 
+ */
+function isAssetTypeAnImage(filePath) {
+    //获取最后一个.的位置
+    let index= filePath.lastIndexOf(".");
+    //获取后缀
+    let ext = filePath.substr(index+1);
+    return [
+    'png', 'jpg', 'jpeg', 'bmp', 'gif', 'webp', 'psd', 'svg', 'tiff'].
+    indexOf(ext.toLowerCase()) !== -1;
+}
+export {encode, isAssetTypeAnImage};
