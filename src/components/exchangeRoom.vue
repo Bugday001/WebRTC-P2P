@@ -1,11 +1,11 @@
 <template>
-    <h1>Peer-to-Peer Cue System --- Diad</h1>
+    <!-- <h1>Peer-to-Peer Cue System --- Diad</h1> -->
     <table class="control">
         <tr>
             <td class="title">Status:
-            <br/>
-            <div id="local-id" style="font-weight: bold;" title="Copy this ID to the input on send.html.">ID:
-            </div>
+                <br />
+                <div id="local-id" style="font-weight: bold;" title="Copy this ID to the input on send.html.">ID:
+                </div>
             </td>
             <td class="title">Messages:</td>
         </tr>
@@ -42,11 +42,11 @@
         </tr>
         <tr>
             <td>
-                <input type="file" accept="*" id="inputFile" ref="file" v-on:input="inputFunc"/>
+                <input type="file" accept="*" id="inputFile" ref="file" v-on:input="inputFunc" />
                 <button type="button" id="sendFile" @click="sendFileBtn">发送文件</button>
             </td>
             <td>
-                <img id="demoImage" ref="img" style="width:50%;border:1px solid #efefef"/>
+                <img id="demoImage" ref="img" style="width:50%;border:1px solid #efefef" />
                 <button type="button" @click="downloadFile">下载文件</button>
             </td>
         </tr>
@@ -90,22 +90,22 @@ export default {
         this.message = document.getElementById("message");
         this.sendMessageBox = document.getElementById("sendMessageBox");
         this.cueString = "<span class=\"cueMsg\">Cue: </span>";
-        
+
         //视频
         this.localVideo = this.$refs.localVideo;
         this.remoteVideo = this.$refs.remoteVideo;
 
         //文件
         this.fileReader = new FileReader();
-        this.fileReader.onload = function() {
-            that.conn.send( that.fileReader.result );
+        this.fileReader.onload = function () {
+            that.conn.send(that.fileReader.result);
             currentChunk++;
-            if( BYTES_PER_CHUNK * currentChunk < file.size ) {
+            if (BYTES_PER_CHUNK * currentChunk < file.size) {
                 that.readNextChunk();
             }
         },
-        //文件流式传输
-        this.fileStream = null;
+            //文件流式传输
+            this.fileStream = null;
         this.writer = null;
 
 
@@ -142,7 +142,7 @@ export default {
             that.peer = new Peer(null, {
                 debug: 2
             });
-            
+
             //
             that.peer.on('open', function (id) {
                 // Workaround for peer.reconnect deleting previous id
@@ -229,7 +229,7 @@ export default {
             });
 
         },
-        
+
         async callUser() {
             let remoteId = this.conn.peer;
             let that = this;
@@ -248,14 +248,14 @@ export default {
             // 多媒体传输
             const call = that.peer.call(remoteId, stream);
             call.on("stream", (stream) => {
-            that.remoteVideo.srcObject = stream;
-            that.remoteVideo.play()
+                that.remoteVideo.srcObject = stream;
+                that.remoteVideo.play()
             });
             call.on("error", (err) => {
-            console.error(err);
+                console.error(err);
             });
             call.on('close', () => {
-            endCall()
+                endCall()
             })
 
             that.currentCall = call
@@ -319,7 +319,7 @@ export default {
          * 处理接收的数据
          * @param {*} data 
          */
-         dataProcess(data) {
+        dataProcess(data) {
             let that = this;
             //判断是文本还是文件
             // if(typeof(data) == 'string') {
@@ -331,17 +331,17 @@ export default {
             //     //用base64编码，还原图片
             //     that.$refs.img.src = 'data:image/png;base64,' + encode(bytes)
             // }
-            if( downloadInProgress == false ) {
-                that.startDownload( data );
-            } else if(downloadInProgress) {
-                that.progressDownload( data );
+            if (downloadInProgress == false) {
+                that.startDownload(data);
+            } else if (downloadInProgress) {
+                that.progressDownload(data);
             }
         },
-        
+
         /**
          * send msg to the other side
          */
-         send() {
+        send() {
             let that = this;
             if (that.conn && that.conn.open) {
                 var msg = that.sendMessageBox.value;
@@ -361,7 +361,7 @@ export default {
             let that = this;
             const inputFile = this.$refs.file.files[0];
             //构造图片对应的blob对象     
-            if(isAssetTypeAnImage(inputFile.name)) {
+            if (isAssetTypeAnImage(inputFile.name)) {
                 that.$refs.img.src = window.URL.createObjectURL(inputFile);
             }
         },
@@ -371,7 +371,7 @@ export default {
          */
         sendFileBtn() {
             let that = this;
-            const inputFile = this.$refs.file.files[0];            
+            const inputFile = this.$refs.file.files[0];
             //切片
             currentChunk = 0;
             // send some metadata about our file
@@ -389,7 +389,7 @@ export default {
          */
         sendFile(blob, fileName, fileType) {
             let that = this;
-            let message = {"file": blob, "filename": fileName, "filetype": fileType };
+            let message = { "file": blob, "filename": fileName, "filetype": fileType };
             if (!(that.conn && that.conn.open)) {
                 alert("请先连接，在从新上传文件发送！");
                 return;
@@ -405,45 +405,45 @@ export default {
         readNextChunk() {
             let that = this;
             let start = BYTES_PER_CHUNK * currentChunk;
-            let end = Math.min( file.size, start + BYTES_PER_CHUNK );
-            that.fileReader.readAsArrayBuffer( file.slice( start, end ) );
+            let end = Math.min(file.size, start + BYTES_PER_CHUNK);
+            that.fileReader.readAsArrayBuffer(file.slice(start, end));
         },
 
         /**
          * 
          * @param {文件信息接收} data 
          */
-        startDownload( data ) {
+        startDownload(data) {
             let that = this;
-            incomingFileInfo = JSON.parse( data.toString() );
+            incomingFileInfo = JSON.parse(data.toString());
             incomingFileData = [];
             bytesReceived = 0;
             downloadInProgress = true;
-            console.log( 'incoming file <b>' + incomingFileInfo.fileName + '</b> of ' + incomingFileInfo.fileSize + ' bytes' );
+            console.log('incoming file <b>' + incomingFileInfo.fileName + '</b> of ' + incomingFileInfo.fileSize + ' bytes');
         },
 
         /**
          * 文件接收
          * @param {*} data 
          */
-        progressDownload( data ) {
+        progressDownload(data) {
             let that = this;
             bytesReceived += data.byteLength;
-            incomingFileData.push( data );
-            console.log( 'progress: ' +  ((bytesReceived / incomingFileInfo.fileSize ) * 100).toFixed( 2 ) + '%' );
-            if( bytesReceived === incomingFileInfo.fileSize ) {
+            incomingFileData.push(data);
+            console.log('progress: ' + ((bytesReceived / incomingFileInfo.fileSize) * 100).toFixed(2) + '%');
+            if (bytesReceived === incomingFileInfo.fileSize) {
                 console.log("传输完成");
-                if(isAssetTypeAnImage(incomingFileInfo.fileName)) {
+                if (isAssetTypeAnImage(incomingFileInfo.fileName)) {
                     that.addMessage("<span class=\"peerMsg\">Peer send a file </span>");
                     let blob = new window.Blob(incomingFileData);
                     that.$refs.img.src = window.URL.createObjectURL(blob);
-                    downloadInProgress =false;
+                    downloadInProgress = false;
                 }
 
             }
-            if(bytesReceived > incomingFileInfo.fileSize) {
+            if (bytesReceived > incomingFileInfo.fileSize) {
                 console.log("失败");
-                downloadInProgress =false;
+                downloadInProgress = false;
             }
         },
 
@@ -451,18 +451,18 @@ export default {
         downloadFile() {
             console.log("endDownload!");
             downloadInProgress = false;
-            let blob = new window.Blob( incomingFileData );
-            let anchor = document.createElement( 'a' );
-            anchor.href = URL.createObjectURL( blob );
+            let blob = new window.Blob(incomingFileData);
+            let anchor = document.createElement('a');
+            anchor.href = URL.createObjectURL(blob);
             anchor.download = incomingFileInfo.fileName;
             anchor.textContent = 'XXXXXXX';
 
-            if( anchor.click ) {
+            if (anchor.click) {
                 anchor.click();
             } else {
-                var evt = document.createEvent( 'MouseEvents' );
-                evt.initMouseEvent( 'click', true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null );
-                anchor.dispatchEvent( evt );
+                var evt = document.createEvent('MouseEvents');
+                evt.initMouseEvent('click', true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
+                anchor.dispatchEvent(evt);
             }
         },
 
@@ -528,9 +528,6 @@ export default {
 };
 </script>
 
-<style src="../assets/css/chat.css" scoped>
-.display-video{
-    width: 90%;
-    height: 90%;
-}
+<style src="../assets/css/exchangeRoom.css" scoped>
+
 </style>

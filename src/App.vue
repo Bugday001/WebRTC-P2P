@@ -5,6 +5,7 @@ import HelloWorld from './components/HelloWorld.vue'
 </script>
 
 <template>
+  <h1>风月宝鉴</h1>
   <router-link to="/sender" class="function_router">发送端</router-link>
 
   <router-link to="/receiver" class="function_router">接收端</router-link>
@@ -36,7 +37,29 @@ import HelloWorld from './components/HelloWorld.vue'
 }
 
 .function_router {
-  margin: 10px;
-  padding: 10px;
+    margin: 10px;
+    padding: 10px;
+    text-decoration: none;
+    background-image: linear-gradient(red, red);
+    background-repeat: no-repeat;
+    background-position: bottom left;
+    background-size: 0 3px;
+    transition: background-size 500ms ease-in-out;
+    color: black;
 }
+
+.function_router:hover {
+    background-size: 100% 3px;
+    color:red;
+}
+
+h1 {
+  padding: 20px 20px;
+  border-left: 10px solid #ed515191;background-color: rgba(208, 208, 208, 0);
+  font-size: 50px;
+  line-height: 40px;
+  color: cornflowerblue;
+  font-weight: bold;margin: 5px 0;
+}
+
 </style>
