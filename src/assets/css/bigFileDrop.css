@@ -16,15 +16,42 @@ input {
 	margin-bottom: 5px;
 }
 
+a:visited{ 
+	color: blue; 
+}
+
+.display {
+    width: 100%;
+    min-height: 400px;
+    padding-bottom: 20px;
+}
+
 .control {
     width: 100%;
     padding-bottom: 20px;
+}
+
+.control-button {
+    width: 100%;
+    min-height: 50px;
+}
+
+.display-box {
+    border: 2px solid black;
 }
 
 .title {
     padding: 10px;
     padding-left: 0;
     vertical-align: top;
+}
+
+.hidden {
+    visibility: hidden;
+}
+
+.no-display {
+    display: none;
 }
 
 .status {
@@ -60,13 +87,8 @@ input {
     color: red;
 }
 
-video {
-    width: 90%;
-
-}
-
-.display-video {
-    object-fit: fill;
-    margin-bottom: 10px;
-    border-bottom: 2px solid black;
+#dropTarget {
+    width: 200px;
+    height: 200px;
+    border: 2px solid gray;
 }

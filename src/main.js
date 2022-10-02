@@ -14,7 +14,7 @@
 
 // // createApp(App).mount('#app')
 
-import { createApp } from 'vue'
+import { createApp, VueElement } from 'vue'
 import {newRouter} from './router/index.js'
 import App from './App.vue'
 
@@ -31,7 +31,6 @@ const app = createApp(App)
     // .use(ElButton);
     
 // app.mount('#app');
-
 //全局捕获错误，便于写入数据库，log文件什么的
 app.config.errorHandler = (err, vm, info) => {
     // 处理错误

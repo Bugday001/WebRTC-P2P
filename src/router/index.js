@@ -2,6 +2,7 @@ import {createRouter,createWebHashHistory} from 'vue-router'
 import sender from '../components/sender.vue'
 import receiver from '../components/receiver.vue'
 import exchangeRoom from '../components/exchangeRoom.vue'
+import bigFileDrop from '../components/bigFileDrop.vue'
 // const router=new VueRouter({
 //     routes:[
 //         //配置路由的路径
@@ -33,6 +34,7 @@ const routes = [
     },
     {path: '/sender', component: sender},
     {path: '/exchangeroom', component: exchangeRoom},
+    {path: '/bigfiledrop', component: bigFileDrop},
 ];
 //};
 

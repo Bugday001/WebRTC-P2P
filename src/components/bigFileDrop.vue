@@ -30,22 +30,10 @@
                 <div class="message" id="message"></div>
             </td>
         </tr>
-        <button type="button" @click="callUser">视频通话</button>
-        <button type="button" @click="endCall">结束通话</button>
-        <button type="button" @click="shareDesktop">桌面共享</button>
-        <tr>
-            <td class="display-video">
-                <h3>本地摄像头</h3>
-                    <video controls autoPlay ref='localVideo' muted />
-            </td>
-            <td class="display-video">
-                <h3>远程摄像头</h3>
-                    <video controls autoPlay ref='remoteVideo'/>
-            </td>
-        </tr>
         <tr>
             <td>
                 <input type="file" accept="*" id="inputFile" ref="file" v-on:input="inputFunc" />
+                <div id="dropTarget"></div>
                 <button type="button" id="sendFile" @click="sendFileBtn">发送文件</button>
             </td>
             <td>
@@ -59,19 +47,12 @@
 <script>
 
 import Peer from 'peerjs'
-// import streamSaver from 'streamsaver'
+import streamSaver from 'streamsaver'
 import {encode, isAssetTypeAnImage, arrayBufferToBase64, base64ToUint8Array} from '../utils/utils.js'
-
-
-const BYTES_PER_CHUNK = 1200 * 1024;
-var currentChunk = 0;
-var file;
-
-var incomingFileInfo;
-var incomingFileData;
-var bytesReceived;
-var downloadInProgress = false;
-
+// const WebTorrent = require('webtorrent')
+// import WebTorrent from '../utils/webtorrent'
+import dragDrop from 'drag-drop'
+import WebTorrent from 'webtorrent/webtorrent.min'
 
 export default {
     data() {
@@ -95,26 +76,6 @@ export default {
         this.sendMessageBox = document.getElementById("sendMessageBox");
         this.cueString = "<span class=\"cueMsg\">Cue: </span>";
 
-        //视频
-        this.localVideo = this.$refs.localVideo;
-        this.remoteVideo = this.$refs.remoteVideo;
-
-        //文件
-        this.fileReader = new FileReader();
-        this.fileReader.onload = function () {
-            that.conn.send(//that.fileReader.result);
-                JSON.stringify({
-                    type: "file",
-                    fileContent: arrayBufferToBase64(that.fileReader.result)
-                }));
-            currentChunk++;
-            if (BYTES_PER_CHUNK * currentChunk < file.size) {
-                that.readNextChunk();
-            }
-        },
-        //文件流式传输
-        this.fileStream = null;
-        this.writer = null;
 
         //由分享连接自动填入对方id
         let id = window.location.href.split('?id=')[1];
@@ -130,6 +91,7 @@ export default {
         });
 
         this.initialize();
+        this.initAll();
     },
 
     created() {
@@ -142,6 +104,21 @@ export default {
     },
 
     methods: {
+
+        /**
+         * 初始化
+         */
+        initAll() {
+            const client = new WebTorrent()
+
+            // When user drops files on the browser, create a new torrent and start seeding it!
+            dragDrop('#dropTarget', function (files) {
+            client.seed(files, function (torrent) {
+                console.log('Client is seeding ' + torrent.magnetURI)
+            })
+            })
+        },
+
         /**
          * Create the Peer object for our end of the connection.
          *
@@ -215,106 +192,7 @@ export default {
                 console.log(err);
                 alert('' + err);
             });
-
-            // 媒体传输，响应
-            that.peer.on('call', async (call) => {
-                if (window.confirm(`是否接受 ${call.peer}?`)) {
-
-                    // 获取本地流
-                    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-                    that.localVideo.srcObject = stream
-                    that.localVideo.play()
-
-                    // 响应
-                    call.answer(stream)
-
-                    // 监听视频流，并更新到 remoteVideo 上
-                    call.on('stream', (stream) => {
-                        that.remoteVideo.srcObject = stream;
-                        that.remoteVideo.play()
-                    })
-
-                    that.currentCall = call
-                } else {
-                    call.close()
-                    alert('已关闭')
-                }
-            });
-
         },
-
-        /**
-         * 发起视频通话
-         */
-        async callUser() {
-            let remoteId = this.conn.peer;
-            let that = this;
-            // 获取本地视频流
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-            that.localVideo.srcObject = stream
-            that.localVideo.play()
-
-            // 多媒体传输
-            const call = that.peer.call(remoteId, stream);
-            call.on("stream", (stream) => {
-                that.remoteVideo.srcObject = stream;
-                that.remoteVideo.play()
-            });
-            call.on("error", (err) => {
-                console.error(err);
-            });
-            call.on('close', () => {
-                endCall();
-            })
-
-            that.currentCall = call
-        },
-        
-        /**
-         * 结束视频通话
-         */
-        endCall() {
-            this.currentCall.close();
-        },
-
-
-        /**
-         * 桌面共享
-         */
-        async shareDesktop() { 
-            let remoteId = this.conn.peer;
-            let that = this;
-
-            var stream = new MediaStream();
-            let audio_stm = await navigator.mediaDevices.getUserMedia({
-                audio: true
-            })
-            let video_stm = await navigator.mediaDevices.getDisplayMedia({
-                video: true
-            })
-            audio_stm.getAudioTracks().map(row => stream.addTrack(row))
-            video_stm.getVideoTracks().map(row => stream.addTrack(row))
-
-            // combine the streams, ... 是扩展运算符
-            // const sstream = new MediaStream([...videoStream.getVideoTracks(), ...audioStream.getAudioTracks()])
-            that.localVideo.srcObject = stream
-            that.localVideo.play()
-
-            // 多媒体传输
-            const call = that.peer.call(remoteId, stream);
-            call.on("stream", (stream) => {
-                that.remoteVideo.srcObject = stream;
-                that.remoteVideo.play()
-            });
-            call.on("error", (err) => {
-                console.error(err);
-            });
-            call.on('close', () => {
-                endCall();
-            })
-
-            that.currentCall = call
-        },  
 
         /**
          * Create the connection between the two Peers.
@@ -394,6 +272,7 @@ export default {
          */
         copyId() {
             let that = this;
+            //新：
             navigator.clipboard.writeText(""+that.peer.id).then(() => {
                 console.log('复制成功');
             });
@@ -435,119 +314,34 @@ export default {
          * 监听input文件变化,不发送
          */
         inputFunc() {
-            let that = this;
-            const inputFile = this.$refs.file.files[0];
-            //构造图片对应的blob对象     
-            if (isAssetTypeAnImage(inputFile.name)) {
-                that.$refs.img.src = window.URL.createObjectURL(inputFile);
-            }
+
         },
 
         /**
          * 发送文件按钮回调
          */
         sendFileBtn() {
-            let that = this;
-            const inputFile = this.$refs.file.files[0];
-            //切片
-            currentChunk = 0;
-            // send some metadata about our file
-            // to the receiver
-            if (!(that.conn && that.conn.open)) {
-                alert("请先连接，在从新上传文件发送！");
-                return;
-            }
-            //显示图像
-            if (isAssetTypeAnImage(inputFile.name)) {
-                that.$refs.img.src = window.URL.createObjectURL(inputFile);
-            }
-            that.conn.send(JSON.stringify({
-                fileName: inputFile.name,
-                fileSize: inputFile.size
-            }));
-            file = inputFile;
-            that.readNextChunk();
+            this.downloadFile();
         },
 
         /**
-         * 发送文件
+         * 下载文件
          */
-        sendFile(blob, fileName, fileType) {
-            let that = this;
-            let message = { "file": blob, "filename": fileName, "filetype": fileType };
-            if (!(that.conn && that.conn.open)) {
-                alert("请先连接，在从新上传文件发送！");
-                return;
-            }
-            that.conn.send(message);
-            console.log('send file');
-        },
-
-        /**
-         * 文件切片发送
-         */
-        readNextChunk() {
-            let that = this;
-            let start = BYTES_PER_CHUNK * currentChunk;
-            let end = Math.min(file.size, start + BYTES_PER_CHUNK);
-            that.fileReader.readAsArrayBuffer(file.slice(start, end));
-        },
-
-        /**
-         * 
-         * @param {文件信息接收} data 
-         */
-        startDownload(data) {
-            let that = this;
-            incomingFileInfo = data;//JSON.parse(data.toString());
-            incomingFileData = [];
-            bytesReceived = 0;
-            downloadInProgress = true;
-            console.log('incoming file <b>' + incomingFileInfo.fileName + '</b> of ' + incomingFileInfo.fileSize + ' bytes');
-        },
-
-        /**
-         * 文件接收
-         * @param {*} data 
-         */
-        progressDownload(data) {
-            let that = this;
-            bytesReceived += data.byteLength;
-            incomingFileData.push(data);
-            console.log('progress: ' + ((bytesReceived / incomingFileInfo.fileSize) * 100).toFixed(2) + '%');
-            if (bytesReceived === incomingFileInfo.fileSize) {
-                console.log("传输完成");
-                if (isAssetTypeAnImage(incomingFileInfo.fileName)) {
-                    that.addMessage("<span class=\"peerMsg\">Peer send a file </span>");
-                    let blob = new window.Blob(incomingFileData);
-                    that.$refs.img.src = window.URL.createObjectURL(blob);
-                    downloadInProgress = false;
-                }
-
-            }
-            if (bytesReceived > incomingFileInfo.fileSize) {
-                console.log("失败");
-                downloadInProgress = false;
-            }
-        },
-
-        //启动下载
         downloadFile() {
-            console.log("endDownload!");
-            downloadInProgress = false;
-            let blob = new window.Blob(incomingFileData);
-            let anchor = document.createElement('a');
-            anchor.href = URL.createObjectURL(blob);
-            anchor.download = incomingFileInfo.fileName;
-            anchor.textContent = 'XXXXXXX';
+            let that = this;
+            const client = new WebTorrent()
+            const magnetURI = that.sendMessageBox.value
 
-            if (anchor.click) {
-                anchor.click();
-            } else {
-                var evt = document.createEvent('MouseEvents');
-                evt.initMouseEvent('click', true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
-                anchor.dispatchEvent(evt);
-            }
+            client.add(magnetURI, function (torrent) {
+            // Got torrent metadata!
+            console.log('Client is downloading:', torrent.infoHash)
+
+            torrent.files.forEach(function (file) {
+                // Display the file by appending it to the DOM. Supports video, audio, images, and
+                // more. Specify a container element (CSS selector or reference to DOM node).
+                file.appendTo('body')
+            })
+            })
         },
 
         /**
@@ -612,6 +406,6 @@ export default {
 };
 </script>
 
-<style src="../assets/css/exchangeRoom.css" scoped>
+<style src="../assets/css/bigFileDrop.css" scoped>
 
 </style>
