@@ -24,7 +24,12 @@
         </tr>
         <tr>
             <td>
-                <div id="status" class="status"></div>
+                <div class="connectInfo">
+                    <div id="status" class="status"></div>
+                    <br/>
+                    <shareIdVue :peerId="peerId"></shareIdVue>
+                </div>
+
             </td>
             <td>
                 <div class="message" id="message"></div>
@@ -59,7 +64,7 @@
 <script>
 
 import Peer from 'peerjs'
-// import streamSaver from 'streamsaver'
+import shareIdVue from './shareId.vue';
 import {encode, isAssetTypeAnImage, arrayBufferToBase64, base64ToUint8Array} from '../utils/utils.js'
 
 
@@ -76,11 +81,11 @@ var downloadInProgress = false;
 export default {
     data() {
         return {
-            boxStyle: {},
+            peerId: ""
         };
     },
     components: {
-        // VideoChatVue
+        shareIdVue
     },
 
     mounted() {
@@ -166,6 +171,7 @@ export default {
                 }
                 console.log('ID: ' + that.peer.id);
                 that.localId.innerHTML = "ID: " + that.peer.id;
+                that.peerId = that.peer.id;
                 that.status.innerHTML = "Awaiting connection...";
             });
 
@@ -290,8 +296,10 @@ export default {
                 audio: true
             })
             let video_stm = await navigator.mediaDevices.getDisplayMedia({
-                video: true
+                video: true,
+                audio: true
             })
+            //组合桌面视频与话筒音频
             audio_stm.getAudioTracks().map(row => stream.addTrack(row))
             video_stm.getVideoTracks().map(row => stream.addTrack(row))
 
@@ -599,7 +607,7 @@ export default {
                 return t;
             };
 
-            this.message.innerHTML = "<br><span class=\"msg-time\">" + h + ":" + m + ":" + s + "</span>  -  " + msg + message.innerHTML;
+            this.message.innerHTML = "<br><span class=\"msg-time\">" + h + ":" + m + ":" + s + "</span>  -  " + msg + this.message.innerHTML;
         },
 
         clearMessages() {
@@ -614,4 +622,9 @@ export default {
 
 <style src="../assets/css/exchangeRoom.css" scoped>
 
+</style>
+<style>
+button {
+    margin: 5px;
+}
 </style>

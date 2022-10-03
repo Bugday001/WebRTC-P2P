@@ -27,18 +27,22 @@ input {
     vertical-align: top;
 }
 
-.status {
-    height: 125px;
+.connectInfo {
+    height: 200px;
     vertical-align: text-top;
     font-weight: bold;
     margin-bottom: 10px;
     border-bottom: 2px solid black;
-    
+}
+
+.status {
+    vertical-align: text-top;
+    font-weight: bold; 
 }
 
 .message {
-    height: 125px;
-    max-height: 125px;
+    height: 200px;
+    max-height: 200px;
     margin-bottom: 10px;
     border-bottom: 2px solid black;
     overflow: auto;
