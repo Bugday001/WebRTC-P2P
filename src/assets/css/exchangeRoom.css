@@ -36,8 +36,9 @@ input {
 }
 
 .status {
-    vertical-align: text-top;
+    /* vertical-align: text-top; */
     font-weight: bold; 
+    margin-top: 10px;
 }
 
 .message {

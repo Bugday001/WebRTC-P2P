@@ -1,8 +1,8 @@
 <template>
-    <input type="text"  ref="username" value="hello" class="username" />
+    Name: <input type="text"  ref="username" value="hello" class="username" />
     <button type="button" @click="pushID">上传ID</button>
     <button type="button" @click="getID">搜索ID</button>
-    <div class="message" ref="message"></div>
+    <div class="onlineUser" ref="message"></div>
 </template>
     
 <script>
@@ -108,13 +108,15 @@ export default {
   width: 150px;
 }
 
-.message {
-    height: 80px;
-    max-height: 80;
+.onlineUser {
+    height: 150px;
+    width: 95%;
+    max-height: 150px;
     margin-bottom: 10px;
     overflow: auto;
-    font-size: 10px;
+    font-size: 16px;
     font-weight: normal;
+    line-height: 30px;
 }
 
 </style>

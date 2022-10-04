@@ -8,7 +8,10 @@
                 <div id="local-id" @click="copyId" style="font-weight: bold;" title="点击复制ID">ID:
                 </div>
             </td>
-            <td class="title">Messages:</td>
+            <td class="title">Messages:
+                <br />
+                <div id="status" class="status"></div>
+            </td>
         </tr>
         <tr>
             <td>
@@ -25,8 +28,7 @@
         <tr>
             <td>
                 <div class="connectInfo">
-                    <div id="status" class="status"></div>
-                    <br/>
+                    <!-- <br/> -->
                     <shareIdVue :peerId="peerId"></shareIdVue>
                 </div>
 
@@ -41,11 +43,11 @@
         <tr>
             <td class="display-video">
                 <h3>本地摄像头</h3>
-                    <video controls autoPlay ref='localVideo' muted />
+                    <video controls autoPlay ref='localVideo' poster="https://hipark.pythonanywhere.com/media/imgs/image.jpg" muted />
             </td>
             <td class="display-video">
                 <h3>远程摄像头</h3>
-                    <video controls autoPlay ref='remoteVideo'/>
+                    <video controls autoPlay ref='remoteVideo' poster="https://hipark.pythonanywhere.com/media/imgs/image.jpg" />
             </td>
         </tr>
         <tr>
@@ -172,6 +174,7 @@ export default {
                 console.log('ID: ' + that.peer.id);
                 that.localId.innerHTML = "ID: " + that.peer.id;
                 that.peerId = that.peer.id;
+                that.status.style.color = "red";
                 that.status.innerHTML = "Awaiting connection...";
             });
 
@@ -188,7 +191,8 @@ export default {
 
                 that.conn = c;
                 console.log("Connected to: " + that.conn.peer);
-                that.status.innerHTML = "Connected";
+                that.status.style.color = "green";
+                that.status.innerHTML = "Friend: " + that.conn.peer;
                 that.ready();
             });
 
@@ -196,7 +200,7 @@ export default {
              * 
              */
             that.peer.on('disconnected', function () {
-                that.status.innerHTML = "Connection lost. Please reconnect";
+                that.status.style.color = "red";
                 console.log('Connection lost. Please reconnect');
 
                 // Workaround for peer.reconnect deleting previous id
@@ -210,7 +214,7 @@ export default {
              */
             that.peer.on('close', function () {
                 that.conn = null;
-                that.status.innerHTML = "Connection destroyed. Please refresh";
+                that.status.style.color = "red";
                 console.log('Connection destroyed');
             });
 
@@ -343,7 +347,8 @@ export default {
             });
 
             that.conn.on('open', function () {
-                that.status.innerHTML = "Connected to: " + that.conn.peer;
+                that.status.style.color = "green";
+                that.status.innerHTML = "Friend: " + that.conn.peer;
                 console.log("Connected to: " + that.conn.peer);
 
                 // Check URL params for comamnds that should be sent immediately
@@ -356,6 +361,7 @@ export default {
                 that.dataProcess(data);
             });
             that.conn.on('close', function () {
+                that.status.style.color = "red";
                 that.status.innerHTML = "Connection closed";
             });
         },
@@ -373,7 +379,8 @@ export default {
             });
 
             that.conn.on('close', function () {
-                that.status.innerHTML = "Connection reset<br>Awaiting connection...";
+                that.status.style.color = "red";
+                that.status.innerHTML = "Connection reset! Awaiting connection...";
                 that.conn = null;
             });
         },
