@@ -1,6 +1,7 @@
 <template>
     <!-- <h1>Peer-to-Peer Cue System --- Diad</h1> -->
     <table class="control">
+        
         <tr>
             <td class="title">Status:
                 <button id="connect-button" @click="copyShareUrl">复制分享URL</button>
@@ -68,7 +69,7 @@
 import Peer from 'peerjs'
 import shareIdVue from './shareId.vue';
 import {encode, isAssetTypeAnImage, arrayBufferToBase64, base64ToUint8Array} from '../utils/utils.js'
-
+import Message from './../libs/myMessage/components/message.js';
 
 const BYTES_PER_CHUNK = 1200 * 1024;
 var currentChunk = 0;
@@ -87,7 +88,7 @@ export default {
         };
     },
     components: {
-        shareIdVue
+        shareIdVue,
     },
 
     mounted() {
@@ -193,6 +194,7 @@ export default {
                 console.log("Connected to: " + that.conn.peer);
                 that.status.style.color = "green";
                 that.status.innerHTML = "Friend: " + that.conn.peer;
+                Message.success({message: '连接成功'});
                 that.ready();
             });
 
@@ -202,7 +204,7 @@ export default {
             that.peer.on('disconnected', function () {
                 that.status.style.color = "red";
                 console.log('Connection lost. Please reconnect');
-
+                Message.warning({message: '连接断开'});
                 // Workaround for peer.reconnect deleting previous id
                 that.peer.id = that.lastPeerId;
                 that.peer._lastServerId = that.lastPeerId;
@@ -216,6 +218,7 @@ export default {
                 that.conn = null;
                 that.status.style.color = "red";
                 console.log('Connection destroyed');
+                Message.warning({message: '连接关闭'});
             });
 
             /**
@@ -350,7 +353,7 @@ export default {
                 that.status.style.color = "green";
                 that.status.innerHTML = "Friend: " + that.conn.peer;
                 console.log("Connected to: " + that.conn.peer);
-
+                Message.success({message: '连接成功'});
                 // Check URL params for comamnds that should be sent immediately
                 var command = that.getUrlParam("command");
                 if (command)
@@ -363,6 +366,7 @@ export default {
             that.conn.on('close', function () {
                 that.status.style.color = "red";
                 that.status.innerHTML = "Connection closed";
+                Message.warning({message: '连接关闭'});
             });
         },
 
@@ -410,6 +414,9 @@ export default {
         copyId() {
             let that = this;
             navigator.clipboard.writeText(""+that.peer.id).then(() => {
+                Message.success({
+                    message: '复制成功!'
+                });
                 console.log('复制成功');
             });
         },
@@ -423,6 +430,7 @@ export default {
             let val = local_url + "?id=" + that.peer.id;
             //新：
             navigator.clipboard.writeText(""+val).then(() => {
+                Message.success({message: '已复制分享链接'});
                 console.log('复制成功');
             });
         },
@@ -634,4 +642,6 @@ export default {
 button {
     margin: 5px;
 }
+
+
 </style>

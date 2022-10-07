@@ -19,6 +19,7 @@ import {newRouter} from './router/index.js'
 import App from './App.vue'
 
 const app = createApp(App)
+
     // .use(ElementPlus,{
     //     locale: zh, size: 'small'
     //   });
